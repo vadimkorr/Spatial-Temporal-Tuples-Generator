@@ -4,14 +4,15 @@ var parseArgs 	= require('./js/minimist.js')
 var args = parseArgs(process.argv, {});
 
 var fileName 		= args.output 	 || "";       			//--output="" 				name of file toFixed save in
-var numberOfTuples 	= args.tuples 	 || 5;  				//--tuples=5 			number of rows
+var numberOfTuples 	= args.tuples 	 || 5;  				//--tuples=5 				number of rows
 var linesPortion 	= args.lines	 || 0;    				//--lines=0.5 				portion of lines in generated rows 0..1
 var latRange 		= args.latRange	 || [-90,90];			//--latRange="-90,90" 		range of lat where events will be generated
 var lngRange 		= args.lngRange	 || [-180,180];			//--lngRange="-180,180" 	range of lng where events will be generated
 var segRangeInLine 	= args.seg		 || [3, 10];     		//--seg="3,10"				number of segments in line
 var latOffsetRange 	= args.latOffset || [-10000, 70000];	//--latOffset="-100,1000"	offset range for each next line segment in meters
 var lngOffsetRange 	= args.lngOffset || [-10000, 70000];	//--lngOffset="0,5000"		offset range for each next line segment in meters
-
+var radiusRange		= args.radius    || [1000, 5000];		//--radius="1000,5000"		uncertain radius
+var clusterIdRange	= args.clIdRange || [1,100];			//--clIdRange="1,100"		range for generating cluster ids
 const toFixed = 7;
 
 var gen = {
@@ -39,8 +40,8 @@ var gen = {
         return [this.genLat(latRange, toFixed), this.genLng(lngRange, toFixed)];
     },
 
-    getStr: function(id, coordWkt, timeInterval, payload, s) {
-        var str = id + s + coordWkt + s + timeInterval + s + payload;
+    getStr: function(id, coordWkt, radius, timeInterval, payload, clusterIdRange, s) {
+        var str = id + s + coordWkt + s + radius + s + timeInterval + s + payload + s + clusterIdRange;
         return str;
     },
 	
@@ -78,7 +79,7 @@ var gen = {
 	}
 };
 
-function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latOffsetRange, lngOffsetRange, toFixed) {
+function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latOffsetRange, lngOffsetRange, radiusRange, clusterIdRange, toFixed) {
     console.log("Start gen\n");
 	var file = fs.createWriteStream(fileName);
 		file.on('error', function(err) {
@@ -88,11 +89,15 @@ function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latO
     for (i = 0; i < numberOfTuples; i++) {
 		var str = "";
 		if (Math.random() <= linesPortion) {
-			var lineWkt = gen.getLineWkt(gen.genCoord(toFixed), gen.getRandomIntInRange(segRangeInLine), latOffsetRange, lngOffsetRange, toFixed);		
-			str = gen.getStr(i, lineWkt, i, "", ";");
+			var lineWkt = gen.getLineWkt(gen.genCoord(toFixed), gen.getRandomIntInRange(segRangeInLine), latOffsetRange, lngOffsetRange, toFixed);	
+			var uncRadius = gen.getRandomIntInRange(radiusRange);
+			var clusterId = gen.getRandomIntInRange(clusterIdRange);
+			str = gen.getStr(i, lineWkt, uncRadius, i, "", clusterId, ";");
 		} else {
 			var coordWkt = gen.getPointWkt(gen.genCoord(toFixed));
-			str = gen.getStr(i, coordWkt, i, "", ";");
+			var uncRadius = gen.getRandomIntInRange(radiusRange);
+			var clusterId = gen.getRandomIntInRange(clusterIdRange);
+			str = gen.getStr(i, coordWkt, uncRadius, i, "", clusterId, ";");
 		}
         file.write(str + '\n');
     }
@@ -120,7 +125,9 @@ function init() {
 	segRangeInLine 	= initRanges(segRangeInLine	, "int");
 	latOffsetRange 	= initRanges(latOffsetRange	, "int");
 	lngOffsetRange 	= initRanges(lngOffsetRange	, "int");
+	radiusRange 	= initRanges(radiusRange	, "int");
+	clusterIdRange  = initRanges(clusterIdRange	, "int");
 }
 
 init();
-genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latOffsetRange, lngOffsetRange, toFixed);
+genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latOffsetRange, lngOffsetRange, radiusRange, clusterIdRange, toFixed);
