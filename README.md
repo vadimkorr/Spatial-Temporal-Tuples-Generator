@@ -1,6 +1,6 @@
 ### **Usage:**
 
-node gen.js --output="path/to/file" --tuples=10 --lines=0.5 --latRange="-10,10" --lngRange="-10,10" --seg="10,10" --latOffset="-70,10000" --lngOffset="0,5000" --radius="1000,5000" --clIdRange="1,100"
+`node gen.js --output="path/to/file" --tuples=10 --lines=0.5 --latRange="-10,10" --lngRange="-10,10" --seg="10,10" --latOffset="-70,10000" --lngOffset="0,5000" --radius="1000,5000" --clIdRange="1,100"`
 
 **Param**|**Description**
 ------------ | -------------

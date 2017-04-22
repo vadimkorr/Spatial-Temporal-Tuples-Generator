@@ -1,1 +1,0 @@
-node gen.js 5 "../dist/output.csv"
