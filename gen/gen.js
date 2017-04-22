@@ -1,19 +1,22 @@
-var fs = require('fs');
+var fs 			= require('fs');
+var parseArgs 	= require('./js/minimist.js')
 
-var fileName 		= process.argv[2] || "";       			//name of file toFixed save in
-var numberOfTuples 	= process.argv[3] || 5;  				//number of rows
+var args = parseArgs(process.argv, {});
 
-var linesPortion 	= process.argv[4] || 0;    				//portion of lines in generated rows 0..1
-var latRange 		= process.argv[5] || [-90,90];			//range of lat where events will be generated
-var lngRange 		= process.argv[6] || [-180,180];		//range of lng where events will be generated
-var segRangeInLine 	= process.argv[7] || [3, 10];     		//number of segments in line
-var latOffsetRange 	= process.argv[8] || [-10000, 70000];	//offset range for each next line segment
-var lngOffsetRange 	= process.argv[9] || [-10000, 70000];	//offset range for each next line segment
+var fileName 		= args.output 	 || "";       			//--output="" 				name of file toFixed save in
+var numberOfTuples 	= args.tuples 	 || 5;  				//--tuples=5 			number of rows
+var linesPortion 	= args.lines	 || 0;    				//--lines=0.5 				portion of lines in generated rows 0..1
+var latRange 		= args.latRange	 || [-90,90];			//--latRange="-90,90" 		range of lat where events will be generated
+var lngRange 		= args.lngRange	 || [-180,180];			//--lngRange="-180,180" 	range of lng where events will be generated
+var segRangeInLine 	= args.seg		 || [3, 10];     		//--seg="3,10"				number of segments in line
+var latOffsetRange 	= args.latOffset || [-10000, 70000];	//--latOffset="-100,1000"	offset range for each next line segment in meters
+var lngOffsetRange 	= args.lngOffset || [-10000, 70000];	//--lngOffset="0,5000"		offset range for each next line segment in meters
 
+const toFixed = 7;
 
 var gen = {
-    genRnd: function(range) {
-		var num = (Math.random() * (range[1] - range[0] + 1) + range[0]).toFixed(15);
+    genRnd: function(range, toFixed) {
+		var num = (Math.random() * (range[1] - range[0] + 1) + range[0]).toFixed(toFixed);
         var posOrNeg = Math.round(Math.random());
         if (posOrNeg == 0) {
             num = num * -1;
@@ -22,18 +25,18 @@ var gen = {
     },
 
     // Lattitude -90 to +90  //0Y
-    genLat: function(range) {
-        return this.genRnd(range);
+    genLat: function(range, toFixed) {
+        return this.genRnd(range, toFixed);
     },
 
     // Longitude -180 to + 180 //0X
     genLng: function(range) {
-        return this.genRnd(range);
+        return this.genRnd(range, toFixed);
     },
 
     //[lattitude, longitude]
-    genCoord: function() {
-        return [this.genLat(latRange), this.genLng(lngRange)];
+    genCoord: function(toFixed) {
+        return [this.genLat(latRange, toFixed), this.genLng(lngRange, toFixed)];
     },
 
     getStr: function(id, coordWkt, timeInterval, payload, s) {
@@ -45,12 +48,12 @@ var gen = {
 		return Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
 	},
 
-    getLineWkt: function(initCoord, numberOfSegments, latOffsetRange, lngOffsetRange) {
+    getLineWkt: function(initCoord, numberOfSegments, latOffsetRange, lngOffsetRange, toFixed) {
         var str = "LINESTRING (";
 		var newCoord = initCoord;
 		str += initCoord[0] + " " + initCoord[1]; 
 		for (var i=0; i<numberOfSegments; i++) {
-			newCoord = this.addOffset(newCoord,  [this.getRandomIntInRange(latOffsetRange), this.getRandomIntInRange(lngOffsetRange)], 15);	
+			newCoord = this.addOffset(newCoord,  [this.getRandomIntInRange(latOffsetRange), this.getRandomIntInRange(lngOffsetRange)], toFixed);	
 			if (newCoord[0] < -90) 	{ newCoord[0] = -90 }
 			if (newCoord[0] > 90) 	{ newCoord[0] = 90  }
 			if (newCoord[1] < -180) { newCoord[1] = -180}
@@ -75,7 +78,7 @@ var gen = {
 	}
 };
 
-function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latOffsetRange, lngOffsetRange) {
+function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latOffsetRange, lngOffsetRange, toFixed) {
     console.log("Start gen\n");
 	var file = fs.createWriteStream(fileName);
 		file.on('error', function(err) {
@@ -85,10 +88,10 @@ function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latO
     for (i = 0; i < numberOfTuples; i++) {
 		var str = "";
 		if (Math.random() <= linesPortion) {
-			var lineWkt = gen.getLineWkt(gen.genCoord(), gen.getRandomIntInRange(segRangeInLine), latOffsetRange, lngOffsetRange);		
+			var lineWkt = gen.getLineWkt(gen.genCoord(toFixed), gen.getRandomIntInRange(segRangeInLine), latOffsetRange, lngOffsetRange, toFixed);		
 			str = gen.getStr(i, lineWkt, i, "", ";");
 		} else {
-			var coordWkt = gen.getPointWkt(gen.genCoord());
+			var coordWkt = gen.getPointWkt(gen.genCoord(toFixed));
 			str = gen.getStr(i, coordWkt, i, "", ";");
 		}
         file.write(str + '\n');
@@ -111,9 +114,13 @@ function initRanges(range, type) {//type "int", "float"
 	}	
 }
 
-latRange 		= initRanges(latRange		, "float");
-lngRange 		= initRanges(lngRange		, "float");
-segRangeInLine 	= initRanges(segRangeInLine	, "int");
-latOffsetRange 	= initRanges(latOffsetRange	, "int");
-lngOffsetRange 	= initRanges(lngOffsetRange	, "int");
-genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latOffsetRange, lngOffsetRange);
+function init() {
+	latRange 		= initRanges(latRange		, "float");
+	lngRange 		= initRanges(lngRange		, "float");
+	segRangeInLine 	= initRanges(segRangeInLine	, "int");
+	latOffsetRange 	= initRanges(latOffsetRange	, "int");
+	lngOffsetRange 	= initRanges(lngOffsetRange	, "int");
+}
+
+init();
+genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latOffsetRange, lngOffsetRange, toFixed);
