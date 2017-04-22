@@ -11,19 +11,19 @@ var areaRadius = process.argv[6];           //
 var gen = {
     genRnd: function(border) {
         var num = (Math.random()*border).toFixed(5);
-        var posorneg = Math.floor(Math.random());
-        if (posorneg == 0) {
+        var posOrNeg = Math.round(Math.random());
+        if (posOrNeg == 0) {
             num = num * -1;
         }
         return num;
     },
 
-    // Lattitude -90 to +90
+    // Lattitude -90 to +90  //0Y
     genLat: function() {
         return this.genRnd(90);
     },
 
-    // Longitude -180 to + 180
+    // Longitude -180 to + 180 //0X
     genLng: function() {
         return this.genRnd(180);
     },
