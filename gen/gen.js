@@ -18,10 +18,10 @@ const toFixed = 7;
 var gen = {
     genRnd: function(range, toFixed) {
 		var num = (Math.random() * (range[1] - range[0] + 1) + range[0]).toFixed(toFixed);
-        var posOrNeg = Math.round(Math.random());
+        /*var posOrNeg = Math.round(Math.random());
         if (posOrNeg == 0) {
             num = num * -1;
-        }
+        }*/
         return num;
     },
 
@@ -31,7 +31,7 @@ var gen = {
     },
 
     // Longitude -180 to + 180 //0X
-    genLng: function(range) {
+    genLng: function(range, toFixed) {
         return this.genRnd(range, toFixed);
     },
 
