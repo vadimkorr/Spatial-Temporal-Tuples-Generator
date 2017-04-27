@@ -2,6 +2,11 @@
 
 //time.getRndTimeInterval(new Date("1/1/2000"), new Date("1/1/2010"), conv.daysToMs(30), false)
 module.exports = {
+	//returns timestamp as day/month/year
+	getTimestamp: function(timelong) {
+		var d = new Date(timelong);
+		return d.getDate() + '/' + (d.getMonth() + 1) + '/' +  d.getFullYear();
+	},
 	//get milliseconds from timestamp 
 	getLongTimeFromTimestamp: function(ts) {
 		return new Date(ts).getTime();  
