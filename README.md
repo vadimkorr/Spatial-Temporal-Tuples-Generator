@@ -1,6 +1,6 @@
 ### **Usage:**
 
-`node gen.js --output="path/to/file" --tuples=10 --lines=0.5 --latRange="-10,10" --lngRange="-10,10" --seg="10,10" --latOffset="-70,10000" --lngOffset="0,5000" --radius="1000,5000" --clIdRange="1,100"`
+`node gen.js --output="D:\proj\output\output.txt" --tuples=10 --lines=0 --latRange="-10,10" --lngRange="-10,10" --seg="10,10" --latOffset="-70,10000" --lngOffset="0,5000" --radius="1000,5000" --clIdRange="1,100" --minTime="1/1/2000" --maxTime="1/1/2017" --daysInterval=30`
 
 **Param**|**Description**
 ------------ | -------------
@@ -9,6 +9,9 @@
 **--lines**|specifies portion of lines among all the generated rows (0..1)
 **--latRange**|range of lattitde values where events will be generated
 **--lngRange**|range of longitude values where events will be generated
+**--minTime**|left time boundary to generate time interval
+**--maxTime**|right time boundary to generate time interval
+**--daysInterval**|max size of generated interval in days
 
 Following params are useful in case if --lines param value is more then 0:
 
