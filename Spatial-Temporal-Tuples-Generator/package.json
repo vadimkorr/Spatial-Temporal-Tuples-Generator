@@ -1,0 +1,28 @@
+{
+  "name": "spatial-temporal-tuples-generator",
+  "version": "1.0.0",
+  "description": "Tool generates file with random spatial temporal tuples based on user defined parameters' values",
+  "main": "generator.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vadimkorr/Spatial-Temporal-Tuples-Generator.git"
+  },
+  "keywords": [
+    "spatial",
+    "temporal",
+    "tuples",
+    "geo"
+  ],
+  "author": "Vadim Korobeinikov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vadimkorr/Spatial-Temporal-Tuples-Generator/issues"
+  },
+  "homepage": "https://github.com/vadimkorr/Spatial-Temporal-Tuples-Generator#readme",
+  "dependencies": {
+    "minimist": "^1.2.0"
+  }
+}

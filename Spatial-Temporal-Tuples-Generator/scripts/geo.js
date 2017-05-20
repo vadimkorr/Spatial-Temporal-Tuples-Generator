@@ -23,8 +23,8 @@ module.exports = {
         return [this.genLat(latRange, toFixed), this.genLng(lngRange, toFixed)];
     },
 
-    getStr: function(id, coordWkt, radius, timeStart, timeFinish, payload, clusterIdRange, s) {
-        var str = id + s + coordWkt + s + radius + s + timeStart + s + timeFinish + s + payload + s + clusterIdRange;
+    getStr: function(id, coordWkt, radius, timeStart, timeFinish, payload, clusterId, s) {
+        var str = id + s + coordWkt + s + radius + s + timeStart + s + timeFinish + s + payload + ((clusterId == "") ? "" : s + clusterId);
         return str;
     },
 	
@@ -54,9 +54,9 @@ module.exports = {
     },
 	
 	addOffset: function(coords, offset, toFixedNumber) {
-		const rEarth = 6378100;
-		var newLat  = parseFloat(coords[0]) + (offset[0] / rEarth) * (180 / Math.PI);
-		var newLng =  parseFloat(coords[1]) + (offset[1] / rEarth) * (180 / Math.PI) / Math.cos(parseFloat(coords[0]) * Math.PI/180);
+		const EARTH_RADIUS = 6378100;//meters
+		var newLat  = parseFloat(coords[0]) + (offset[0] / EARTH_RADIUS) * (180 / Math.PI);
+		var newLng =  parseFloat(coords[1]) + (offset[1] / EARTH_RADIUS) * (180 / Math.PI) / Math.cos(parseFloat(coords[0]) * Math.PI/180);
 		var res = [parseFloat(newLat).toFixed(toFixedNumber), parseFloat(newLng).toFixed(toFixedNumber)];
 		return res;
 	}
