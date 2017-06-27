@@ -1,6 +1,6 @@
 ### **Description:**
 
-Tool generates file with random spatial temporal tuples based on user defined parameters' values
+Tool for multithreaded generating file with random spatial temporal tuples based on user defined parameters' values
 
 ### **Usage:**
 
@@ -9,7 +9,7 @@ Tool generates file with random spatial temporal tuples based on user defined pa
 **Param**|**Description**
 ------------ | -------------
 **--output**|name of the file save in
-**--tuple**|number of rows to generate
+**--tuples**|number of rows to generate
 **--lines**|specifies portion of `LineString`'s among all the generated rows (0..1)
 **--latRange**|range of lattitde values where events will be generated
 **--lngRange**|range of longitude values where events will be generated
@@ -18,6 +18,7 @@ Tool generates file with random spatial temporal tuples based on user defined pa
 **--maxTime**|right time boundary to generate start time for interval
 **--daysInterval**|max size of generated interval in days
 **--withClusterId**|it is needed to generate random cluster id for each tuple
+**--numThreads**|number of threads to divide the task
 
 Following params are useful in case if --lines param value is more then 0:
 

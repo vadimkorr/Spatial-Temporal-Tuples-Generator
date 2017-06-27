@@ -23,6 +23,8 @@
   },
   "homepage": "https://github.com/vadimkorr/Spatial-Temporal-Tuples-Generator#readme",
   "dependencies": {
-    "minimist": "^1.2.0"
+    "concat-files": "^0.1.1",
+    "minimist": "^1.2.0",
+    "rimraf": "^2.6.1"
   }
 }
