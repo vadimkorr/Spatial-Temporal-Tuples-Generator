@@ -1,6 +1,6 @@
 module.exports = {
     genRnd: function(range, toFixed) {
-		var num = (Math.random() * (range[1] - range[0] + 1) + range[0]).toFixed(toFixed);
+		var num = (Math.random() * (range[1] - range[0]/* + 1*/) + range[0]).toFixed(toFixed);
         /*var posOrNeg = Math.round(Math.random());
         if (posOrNeg == 0) {
             num = num * -1;

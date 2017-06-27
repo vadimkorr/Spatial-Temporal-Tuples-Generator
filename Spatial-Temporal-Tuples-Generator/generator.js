@@ -24,7 +24,7 @@ var withClusterId    = args.withClusterId || true;               //--withCluster
 
 const toFixed = 7;
 
-function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latOffsetRange, lngOffsetRange, radiusRange, clusterIdRange, toFixed, minTime, maxTime, daysInterval, withClusterId) {
+function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latRange, lngRange, latOffsetRange, lngOffsetRange, radiusRange, clusterIdRange, toFixed, minTime, maxTime, daysInterval, withClusterId) {
     console.log("Generating...\n");
 	var file = fs.createWriteStream(fileName);
 		file.on('error', function(err) {
@@ -60,6 +60,7 @@ function initRanges(range, type) {//type = "int", "float"
 				   : type == "float" ? parseFloat(arr[r]) 
 				   : "";
 		}
+		
 		return arr;
 	}	
 }
@@ -75,4 +76,4 @@ function init() {
 }
 
 init();
-genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latOffsetRange, lngOffsetRange, radiusRange, clusterIdRange, toFixed, minTime, maxTime, daysInterval, withClusterId);
+genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latRange, lngRange, latOffsetRange, lngOffsetRange, radiusRange, clusterIdRange, toFixed, minTime, maxTime, daysInterval, withClusterId);
