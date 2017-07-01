@@ -18,11 +18,10 @@ module.exports = {
         return this.genRnd(range, toFixed);
     },
 
-    //[lattitude, longitude]
     genCoord: function(latRange, lngRange, toFixed) {
-        return [this.genLat(latRange, toFixed), this.genLng(lngRange, toFixed)];
+        return [this.genLng(lngRange, toFixed), this.genLat(latRange, toFixed)];
     },
-
+    
     getStr: function(id, coordWkt, radius, timeStart, timeFinish, payload, clusterId, s) {
         var str = id + s + coordWkt + s + radius + s + timeStart + s + timeFinish + s + payload + ((clusterId == "") ? "" : s + clusterId);
         return str;
@@ -38,10 +37,10 @@ module.exports = {
 		str += initCoord[0] + " " + initCoord[1]; 
 		for (var i=0; i<numberOfSegments; i++) {
 			newCoord = this.addOffset(newCoord,  [this.getRandomIntInRange(latOffsetRange), this.getRandomIntInRange(lngOffsetRange)], toFixed);	
-			if (newCoord[0] < -90) 	{ newCoord[0] = -90 }
-			if (newCoord[0] > 90) 	{ newCoord[0] = 90  }
-			if (newCoord[1] < -180) { newCoord[1] = -180}
-			if (newCoord[1] > 180) 	{ newCoord[1] = 180	}	
+			if (newCoord[1] < -90) 	{ newCoord[1] = -90 }
+			if (newCoord[1] > 90) 	{ newCoord[1] = 90  }
+			if (newCoord[0] < -180) { newCoord[0] = -180}
+			if (newCoord[0] > 180) 	{ newCoord[0] = 180	}	
 			str += ", " + newCoord[0] + " " + newCoord[1];
 		}
         str += ")";
@@ -54,10 +53,14 @@ module.exports = {
     },
 	
 	addOffset: function(coords, offset, toFixedNumber) {
+        let lng = coords[0];
+        let lat = coords[1];   
+        let lngOffset = offset[0];
+        let latOffset = offset[1];  
 		const EARTH_RADIUS = 6378100;//meters
-		var newLat  = parseFloat(coords[0]) + (offset[0] / EARTH_RADIUS) * (180 / Math.PI);
-		var newLng =  parseFloat(coords[1]) + (offset[1] / EARTH_RADIUS) * (180 / Math.PI) / Math.cos(parseFloat(coords[0]) * Math.PI/180);
-		var res = [parseFloat(newLat).toFixed(toFixedNumber), parseFloat(newLng).toFixed(toFixedNumber)];
+		var newLat  = parseFloat(lat) + (latOffset / EARTH_RADIUS) * (180 / Math.PI);
+		var newLng =  parseFloat(lng) + (lngOffset / EARTH_RADIUS) * (180 / Math.PI) / Math.cos(parseFloat(lng) * Math.PI/180);
+		var res = [parseFloat(newLng).toFixed(toFixedNumber), parseFloat(newLat).toFixed(toFixedNumber)];
 		return res;
 	}
 }
