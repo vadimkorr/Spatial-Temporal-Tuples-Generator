@@ -6,14 +6,23 @@ var conv = require("./scripts/converters.js");
 var cluster = require('cluster');
 var concat = require("concat-files");
 var rimraf = require("rimraf");
+var child_process = require('child_process');
+var os = require('os');
 
 const NUM_CPUS = require('os').cpus().length;
 const TO_FIXED = 7;
 const TEMP_FOLDER = "temp";
+const OS_PLATFORM = os.platform();
+
+// concatenating result files
+// lib - using 'concat-files', but it doesn't support merging large files
+// os - using cmd commands, current version supports only windows commands :(
+const MERGING_LIB = 'lib';
+const MERGING_OS = 'os';
 
 var args = parseArgs(process.argv, {});
 var fileName = args.output || ""; //--output="" : name of file toFixed save in
-var numberOfTuples = args.tuples || 5; //--tuples=5 : number of rows
+var numberOfTuples = args.tuples || 100; //--tuples=5 : number of rows
 var linesPortion = args.lines || 0; //--lines=0.5 : portion of lines in generated rows 0..1
 var latRange = args.latRange || [-90,90]; //--latRange="-90,90" : range of lat where events will be generated
 var lngRange = args.lngRange || [-180,180]; //--lngRange="-180,180" : range of lng where events will be generated
@@ -27,6 +36,7 @@ var maxTime = args.maxTime || "1/1/2017"; //--maxTime="1/1/2017" : max time to g
 var daysInterval = args.daysInterval || 30; //--daysInterval=30 : max size of generated interval in days
 var withClusterId = args.withClusterId || true; //--withClusterId=true : is cluster id needed
 var numThreads = args.numThreads || NUM_CPUS; //--numThreads : number of threads to divide the task 
+var merging = args.merging || MERGING_LIB; //--merging : what kind of tool to use for concatenating files 
 
 let files = [];
 
@@ -35,7 +45,10 @@ function createTempFolder(callback) {
 }
 
 function removeTempFolder(callback) {
-	rimraf(TEMP_FOLDER, callback);
+  rimraf(TEMP_FOLDER, function() {
+    console.log("Removing temporary files finished");
+    callback();
+  });
 }
 
 function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latRange, lngRange, latOffsetRange, lngOffsetRange, radiusRange, clusterIdRange, toFixed, minTime, maxTime, daysInterval, withClusterId) {
@@ -64,7 +77,7 @@ function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latR
       let timeInterval = time.getRndTimeInterval(new Date(minTime), new Date(maxTime), conv.daysToMs(daysInterval), true)
       let str = geo.getStr(i, wkt, uncRadius, timeInterval[0], timeInterval[1], "payload", clusterId, ";");
       file.write(str + '\n');
-		}
+	}
     file.end();		
   });
 }
@@ -84,24 +97,14 @@ function startGen(fileName, numberOfTuples, linesPortion, segRangeInLine, latRan
       }
 
       cluster.on('exit', function(worker) {
-        if (Object.keys(cluster.workers).length === 0) {
+        if (Object.keys(cluster.workers).length === 0 && cluster.isMaster) {
           console.log('Every worker has finished its job.');
           console.log('Generating time: ' + (Date.now() - start) + 'ms');
-			
-          console.log(files);
-          var startSaving = Date.now();
-			
-          concat(files, fileName, function(err) {
-            if (err) throw err
-            console.log('Saving time: ' + (Date.now() - startSaving) + 'ms');
-            console.log('done');
-            removeTempFolder(function() {
-              process.exit(1);
-            });
-          });
+          //console.log(files);
+          mergingFilesHubFunction(files, fileName);
         }
       });
-	  }); 
+	}); 
   } else {
     process.on('message', function(params) {
       let fileName = params[0];
@@ -115,6 +118,56 @@ function startGen(fileName, numberOfTuples, linesPortion, segRangeInLine, latRan
       });
     });
   }		
+}
+
+function mergingFilesHubFunction(files, fileName) {
+  switch (merging) {
+	case MERGING_LIB: {
+	  let startSaving = Date.now();
+	  concat(files, fileName, function(err) {
+		if (err) throw err
+		console.log('saving time: ' + (Date.now() - startSaving) + 'ms');
+		console.log('done');
+		removeTempFolder(function() {
+		  process.exit(1);
+		});
+	  });
+	  break;
+	}	
+	case MERGING_OS: {
+	  switch(OS_PLATFORM) {
+		case 'win32': {
+		  mergeFilesCmd(fileName, function() {
+			removeTempFolder(function() {
+			  process.exit(1);
+			});
+		  });
+          break;		  
+		}
+		default: {
+		  console.log("Unsupported os platform: " + OS_PLATFORM);
+		  break;
+		}
+	  }
+	  break;
+	}
+	default: {
+	  console.log("Unsupported merging type: " + merging);
+	  break;
+	}
+  }
+}
+
+function mergeFilesCmd(outputFileName, onClose) {
+  child_process.exec("copy " + TEMP_FOLDER + "\\* " + outputFileName, function(error, stdout, stderr) {
+    if (stdout) console.log("stdout", "\n", stdout);
+	if (stderr) console.log("stderr", "\n", stderr);
+	if (error) console.log("error", "\n", error);
+  })
+  .addListener('close', function() {
+	  console.log(OS_PLATFORM + ": merging files finished");
+	  onClose();
+  });
 }
 
 function initRanges(range, type) {//type = "int", "float"
