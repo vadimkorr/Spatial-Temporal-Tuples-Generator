@@ -9,7 +9,7 @@ var rimraf = require("rimraf");
 var child_process = require('child_process');
 var os = require('os');
 
-const NUM_CPUS = require('os').cpus().length;
+const NUM_CPUS = os.cpus().length;
 const TO_FIXED = 7;
 const TEMP_FOLDER = "temp";
 const OS_PLATFORM = os.platform();
@@ -17,11 +17,13 @@ const OS_PLATFORM = os.platform();
 // concatenating result files
 // lib - using 'concat-files', but it doesn't support merging large files
 // os - using cmd commands, current version supports only windows commands :(
+// no - preserves temp folder to be removed
 const MERGING_LIB = 'lib';
 const MERGING_OS = 'os';
+const MERGING_NO = 'no';
 
 var args = parseArgs(process.argv, {});
-var fileName = args.output || ""; //--output="" : name of file toFixed save in
+var fileName = args.output || "output.csv"; //--output="" : name of file toFixed save in
 var numberOfTuples = args.tuples || 100; //--tuples=5 : number of rows
 var linesPortion = args.lines || 0; //--lines=0.5 : portion of lines in generated rows 0..1
 var latRange = args.latRange || [-90,90]; //--latRange="-90,90" : range of lat where events will be generated
@@ -38,6 +40,7 @@ var withClusterId = args.withClusterId || true; //--withClusterId=true : is clus
 var numThreads = args.numThreads || NUM_CPUS; //--numThreads : number of threads to divide the task 
 var merging = args.merging || MERGING_LIB; //--merging : what kind of tool to use for concatenating files 
 
+//array of file names with generated events, created per each node 
 let files = [];
 
 function createTempFolder(callback) {
@@ -47,7 +50,7 @@ function createTempFolder(callback) {
 function removeTempFolder(callback) {
   rimraf(TEMP_FOLDER, function() {
     console.log("Removing temporary files finished");
-    callback();
+    if (callback) callback();
   });
 }
 
@@ -66,7 +69,7 @@ function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latR
 
     for (let i = 0; i < numberOfTuples; i++) {
       let wkt;
-			if (Math.random() <= linesPortion) {
+      if (Math.random() <= linesPortion) {
         wkt = geo.getLineWkt(geo.genCoord(latRange, lngRange, toFixed), geo.getRandomIntInRange(segRangeInLine), latOffsetRange, lngOffsetRange, toFixed);	
       } else {
         wkt = geo.getPointWkt(geo.genCoord(latRange, lngRange, toFixed));
@@ -75,12 +78,15 @@ function genAndSave(fileName, numberOfTuples, linesPortion, segRangeInLine, latR
       let uncRadius = geo.getRandomIntInRange(radiusRange);
       let clusterId = (withClusterId==='true') ? geo.getRandomIntInRange(clusterIdRange) : "";
       let timeInterval = time.getRndTimeInterval(new Date(minTime), new Date(maxTime), conv.daysToMs(daysInterval), true)
-      let str = geo.getStr(i, wkt, uncRadius, timeInterval[0], timeInterval[1], "payload", clusterId, ";");
-      file.write(str + '\n');
+      let str = geo.getStr(i, wkt, uncRadius, timeInterval[0], timeInterval[1], "This is a string with an examples of the payload. Here information about the actors, characteristics or a just a small description of the event can be written.", clusterId, ";");
+      i == numberOfTuples - 1 ? file.write(str) : file.write(str + '\n');
 	}
     file.end();		
   });
 }
+
+//points that all workers are finished their work
+let finished = false;
 
 function startGen(fileName, numberOfTuples, linesPortion, segRangeInLine, latRange, lngRange, latOffsetRange, lngOffsetRange, radiusRange, clusterIdRange, toFixed, minTime, maxTime, daysInterval, withClusterId, numThreads) {
   if (cluster.isMaster) {  
@@ -88,8 +94,8 @@ function startGen(fileName, numberOfTuples, linesPortion, segRangeInLine, latRan
       var start = Date.now();
       for (let t = 0; t < numThreads; t++) {
         let worker = cluster.fork();
-        worker.on('message', function(fileName) {	
-          files.push(fileName);	
+        worker.on('message', function(partialResultFileName) {	
+          files.push(partialResultFileName);	
           console.log('Process ' + this.process.pid + '  has finished generating');
           this.destroy();
         });
@@ -97,11 +103,13 @@ function startGen(fileName, numberOfTuples, linesPortion, segRangeInLine, latRan
       }
 
       cluster.on('exit', function(worker) {
-        if (Object.keys(cluster.workers).length === 0 && cluster.isMaster) {
-          console.log('Every worker has finished its job.');
-          console.log('Generating time: ' + (Date.now() - start) + 'ms');
-          //console.log(files);
-          mergingFilesHubFunction(files, fileName);
+        if (!finished) {		
+          if (Object.keys(cluster.workers).length === 0/* && cluster.isMaster*/) {
+            finished = true;
+            console.log('Every worker has finished its job.');
+            console.log('Generating time: ' + (Date.now() - start) + 'ms');
+            mergingFilesHubFunction(files, fileName);
+          }
         }
       });
 	}); 
@@ -112,10 +120,10 @@ function startGen(fileName, numberOfTuples, linesPortion, segRangeInLine, latRan
       console.log('Process ' + process.pid + '  is starting to generate.');
 
       genAndSave(fileName, numberOfTuplesPerWorker, linesPortion, segRangeInLine, latRange, lngRange, latOffsetRange, lngOffsetRange, radiusRange, clusterIdRange, toFixed, minTime, maxTime, daysInterval, withClusterId)
-			.then(function(fileName) {
-        console.log(fileName + " saved");
-        process.send(fileName);
-      });
+        .then(function(fileName) {
+          console.log(fileName + " saved");
+          process.send(fileName);
+        });
     });
   }		
 }
@@ -137,7 +145,7 @@ function mergingFilesHubFunction(files, fileName) {
 	case MERGING_OS: {
 	  switch(OS_PLATFORM) {
 		case 'win32': {
-		  mergeFilesCmd(fileName, function() {
+		  mergeFilesCmd(fileName, function() {		 
 			removeTempFolder(function() {
 			  process.exit(1);
 			});
@@ -150,6 +158,11 @@ function mergingFilesHubFunction(files, fileName) {
 		}
 	  }
 	  break;
+	}
+	case MERGING_NO: {
+		console.log("No merging");
+		process.exit(1);
+		break;
 	}
 	default: {
 	  console.log("Unsupported merging type: " + merging);
